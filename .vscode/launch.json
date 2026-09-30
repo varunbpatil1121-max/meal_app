@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "meal_app (Chrome)",
+            "type": "dart",
+            "request": "launch",
+            "program": "lib/main.dart",
+            "deviceId": "chrome",
+            // Fixed port so it never lands on 8080, where Jenkins runs.
+            "args": ["--web-port", "5050"]
+        },
+        {
+            "name": "meal_app (choose device)",
+            "type": "dart",
+            "request": "launch",
+            "program": "lib/main.dart"
+        }
+    ]
+}
