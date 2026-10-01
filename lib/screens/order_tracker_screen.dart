@@ -97,7 +97,8 @@ class _OrderTrackerScreenState extends State<OrderTrackerScreen> with TickerProv
         .firstOrNull;
     if (url == null || url == _precached) return;
     _precached = url;
-    precacheImage(NetworkImage(url), context).catchError((_) {});
+    // A failed download is fine: the meal thumbnail falls back to 🍔.
+    precacheImage(NetworkImage(url), context, onError: (_, _) {});
   }
 
   @override
