@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:meal_app/config.dart';
 import 'package:meal_app/models/order.dart';
 import 'package:meal_app/screens/admin_orders_screen.dart';
-import 'package:meal_app/screens/my_orders_screen.dart';
+import 'package:meal_app/screens/order_tracker_screen.dart';
 import 'package:meal_app/services/order_service.dart';
 import 'package:meal_app/widgets/notification_banner.dart';
 
@@ -13,31 +13,36 @@ final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// In-app order notifications, driven by live Firestore updates:
-/// - customers get a popup when an admin confirms or rejects their order
-///   (shown the next time they open the app if they weren't in it), and
+/// - customers get a popup each time an admin moves their order to the next
+///   step (shown the next time they open the app if they weren't in it), and
 /// - admins get a popup whenever a new order comes in.
 class NotificationService {
   static StreamSubscription? _userSub;
   static StreamSubscription? _adminSub;
   static final _shownToUser = <String>{};
 
+  /// The order whose tracker is on screen; its updates need no popup.
+  static String? visibleOrderId;
+
   static void startForUser(String uid) {
     _userSub ??= OrderService.watchMyOrders(uid).listen((orders) {
       for (final order in orders.reversed) {
-        if (order.status == OrderStatus.pending || order.userNotified) continue;
-        if (!_shownToUser.add(order.id)) continue;
+        final status = order.status;
+        if (status == OrderStatus.pending || order.notifiedStatus == status.name) continue;
+        if (!_shownToUser.add('${order.id}:${status.name}')) continue;
+        OrderService.markUserNotified(order.id, status);
+        if (order.id == visibleOrderId) continue;
 
-        final confirmed = order.status == OrderStatus.confirmed;
-        _show(
-          confirmed ? 'Order confirmed! 🎉' : 'Order rejected',
-          confirmed
-              ? 'Your ${order.quantity} × ${order.mealTitle} ($kCurrency${order.total}) is confirmed.'
-              : 'Sorry, your order for ${order.mealTitle} was rejected.',
-          const MyOrdersScreen(),
-          icon: confirmed ? Icons.check_circle : Icons.cancel,
-          color: confirmed ? Colors.green : Colors.red,
-        );
-        OrderService.markUserNotified(order.id);
+        final meal = order.mealTitle;
+        final (title, body, icon, color) = switch (status) {
+          OrderStatus.confirmed => ('Order confirmed! ✅', 'Your $meal is confirmed.', Icons.check_circle, Colors.green),
+          OrderStatus.cooking => ('Cooking now 🧑‍🍳', 'The chef has started on your $meal.', Icons.soup_kitchen, Colors.orange),
+          OrderStatus.pickedUp => ('Picked up 🛍️', 'A rider has collected your $meal.', Icons.shopping_bag, Colors.orange),
+          OrderStatus.onTheWay => ('On the way 🛵', 'Your $meal is on its way to you.', Icons.delivery_dining, Colors.blue),
+          OrderStatus.delivered => ('Delivered! 😋', 'Enjoy your $meal ($kCurrency${order.total}).', Icons.home, Colors.green),
+          _ => ('Order rejected', 'Sorry, your order for $meal was rejected.', Icons.cancel, Colors.red),
+        };
+        _show(title, '$body Tap to watch.', OrderTrackerScreen(orderId: order.id), icon: icon, color: color);
       }
     });
   }

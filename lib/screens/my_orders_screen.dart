@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:meal_app/screens/order_tracker_screen.dart';
 import 'package:meal_app/services/order_service.dart';
 import 'package:meal_app/widgets/order_tile.dart';
 
@@ -26,7 +27,15 @@ class MyOrdersScreen extends StatelessWidget {
           }
           return ListView(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            children: [for (final order in orders) OrderTile(order: order)],
+            children: [
+              for (final order in orders)
+                OrderTile(
+                  order: order,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (ctx) => OrderTrackerScreen(orderId: order.id),
+                  )),
+                ),
+            ],
           );
         },
       ),
