@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meal_app/config.dart';
 import 'package:meal_app/models/meal.dart';
+import 'package:meal_app/screens/order_journey_screen.dart';
 import 'package:meal_app/services/order_service.dart';
 import 'package:meal_app/services/price_service.dart';
 import 'package:meal_app/widgets/price_tag.dart';
@@ -37,13 +38,12 @@ class _MealDetailsScreenState extends State<MealDetailsScreen> {
     if (quantity == null || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     try {
-      await OrderService.placeOrder(widget.meal, quantity);
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(const SnackBar(
-          content: Text("Order placed! You'll get a notification when it's confirmed."),
-        ));
+      final total = await OrderService.placeOrder(widget.meal, quantity);
+      navigator.push(MaterialPageRoute(
+        builder: (ctx) => OrderJourneyScreen(meal: widget.meal, quantity: quantity, total: total),
+      ));
     } catch (e) {
       messenger
         ..clearSnackBars()

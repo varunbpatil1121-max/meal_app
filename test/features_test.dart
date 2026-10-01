@@ -5,6 +5,7 @@ import 'package:meal_app/data/dummy_data.dart';
 import 'package:meal_app/main.dart';
 import 'package:meal_app/models/meal.dart';
 import 'package:meal_app/screens/auth_screen.dart';
+import 'package:meal_app/screens/order_journey_screen.dart';
 import 'package:meal_app/widgets/notification_banner.dart';
 
 void main() {
@@ -60,5 +61,40 @@ void main() {
     expect(copy.price, meal.price);
     expect(copy.steps, meal.steps);
     expect(copy.complexity, meal.complexity);
+  });
+
+  testWidgets('Order journey animation plays through every step', (tester) async {
+    final meal = dummyMeals.first;
+    await tester.pumpWidget(MaterialApp(
+      theme: theme,
+      home: OrderJourneyScreen(meal: meal, quantity: 2, total: 398),
+    ));
+    expect(find.text('Order placed!'), findsOneWidget);
+    expect(find.text('2 × ${meal.title} · ₹398'), findsOneWidget);
+    expect(find.text('Replay'), findsOneWidget); // present but hidden until the end
+
+    var elapsedMs = 0;
+    for (final (seconds, title) in [
+      (3, 'The chef is cooking'),
+      (6, 'Rider picked up your order'),
+      (8, 'On the way to you'),
+      (11, 'Delivered!'),
+      (14, 'Enjoy your meal!'),
+    ]) {
+      await tester.pump(Duration(milliseconds: seconds * 1000 - elapsedMs));
+      await tester.pump(const Duration(milliseconds: 400));
+      elapsedMs = seconds * 1000 + 400;
+      expect(find.text(title), findsOneWidget, reason: 'at ${seconds}s');
+    }
+
+    await tester.pumpAndSettle();
+    expect(find.text('Skip'), findsNothing);
+    await tester.tap(find.text('Replay'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Order placed!'), findsOneWidget);
+    expect(find.text('Skip'), findsOneWidget);
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enjoy your meal!'), findsOneWidget);
   });
 }

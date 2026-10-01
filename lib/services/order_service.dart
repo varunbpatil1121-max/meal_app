@@ -8,7 +8,8 @@ class OrderService {
   static final _orders = FirebaseFirestore.instance.collection('${kCollectionPrefix}orders');
   static final _prices = FirebaseFirestore.instance.collection('${kCollectionPrefix}prices');
 
-  static Future<void> placeOrder(Meal meal, int quantity) async {
+  /// Places the order and returns its total.
+  static Future<int> placeOrder(Meal meal, int quantity) async {
     final user = FirebaseAuth.instance.currentUser!;
     // Read the live price so the order matches what the admin has set.
     final priceDoc = await _prices.doc(meal.id).get();
@@ -29,6 +30,7 @@ class OrderService {
       // Set to true once the customer has seen the confirm/reject popup.
       'userNotified': false,
     });
+    return unitPrice * quantity;
   }
 
   static Stream<List<MealOrder>> watchMyOrders(String uid) => _orders
